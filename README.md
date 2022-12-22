@@ -52,41 +52,18 @@
 
 ## 挂载说明
 
-- **查看挂载的卷(后面./的目录为卷)**
-
-    ```bash
-    docker volume ls
-    docker volume inspect xxx
-    thingspanel-go #后端
-    thingspanel-html #前端
-    thingspanel-postgres #数据库
-    ```
-
 - **系统日志、图片等存放目录**
 
     ```bash
-    ./thingspanel-go/files
+    ./init_files/files
     ```
 
-- **插件**
-    > 无需重启容器
 
-    ```bash
-    ./thingspanel-go/extensions
-    ```
-
-- **后端代码目录**
+- **后端配置文件**
     > 可在此处更新和编译代码，编译后重启后端容器
 
     ```bash
-    ./init_files/backend
-    ```
-
-- **前端代码目录**
-    > 可将vue打包好的文件放在此处，重启前端容器
-
-    ```bash
-    ./init_files/html
+    ./init_files/conf
     ```
 
 ## 查看容器运行日志

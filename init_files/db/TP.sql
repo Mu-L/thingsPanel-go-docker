@@ -336,7 +336,7 @@ CREATE TABLE ts_kv (
 	dbl_v float8 NULL,
 	CONSTRAINT ts_kv_pkey PRIMARY KEY (entity_type, entity_id, key, ts)
 );
-CREATE INDEX ts_kv_ts_idx ON public.ts_kv USING btree (ts);
+CREATE INDEX ts_kv_ts_idx ON public.ts_kv USING btree (ts DESC);
 COMMENT ON TABLE public.ts_kv IS '数据管理表';
 
 
@@ -1158,7 +1158,6 @@ COMMENT ON COLUMN public.tp_batch.access_address IS '接入地址';
 ALTER TABLE public.tp_product ADD device_model_id varchar(36) NULL;
 COMMENT ON COLUMN public.tp_product.device_model_id IS '插件id';
 
-
 CREATE TABLE public.tp_protocol_plugin (
 	id varchar(36) NOT NULL,
 	"name" varchar(99) NOT NULL,
@@ -1172,12 +1171,80 @@ CREATE TABLE public.tp_protocol_plugin (
 );
 
 -- Column comments
+ALTER TABLE public.tp_protocol_plugin ADD device_type varchar(36) NULL;
+COMMENT ON COLUMN public.tp_protocol_plugin.device_type IS '设备类型1-设备 2-网关';
 
 COMMENT ON COLUMN public.tp_protocol_plugin.sub_topic_prefix IS '订阅主题前缀';
-ALTER TABLE public.tp_protocol_plugin ADD CONSTRAINT tp_protocol_plugin_un UNIQUE (protocol_type);
+ALTER TABLE public.tp_protocol_plugin ADD CONSTRAINT tp_protocol_plugin_un UNIQUE (protocol_type,device_type);
+
+
+
 INSERT INTO public.tp_protocol_plugin
-(id, "name", protocol_type, access_address, http_address, sub_topic_prefix, created_at, description)
-VALUES('c8a13166-e010-24e4-0565-e87feea162bb', 'MODBUS_TCP协议', 'MODBUS_TCP', '127.0.0.1:502', '127.0.0.1:503', 'plugin/modbus/', 1668759820, 'MODBUS_TCP协议插件服务');
+(id, "name", protocol_type, access_address, http_address, sub_topic_prefix, created_at, description, device_type)
+VALUES('c8a13166-e010-24e4-0565-e87feea162bb', 'MODBUS_TCP协议', 'MODBUS_TCP', '127.0.0.1:502', '127.0.0.1:503', 'plugin/modbus/', 1668759820, 'MODBUS_TCP协议插件服务', '2');
 INSERT INTO public.tp_protocol_plugin
-(id, "name", protocol_type, access_address, http_address, sub_topic_prefix, created_at, description)
-VALUES('2a95000c-9c29-7aae-58b0-5202daf1546a', 'MODBUS_UDP协议', 'MODBUS_UDP', '127.0.0.1:502', '127.0.0.1:503', 'plugin/modbus/', 1668759841, 'MODBUS_UDP协议插件服务');
+(id, "name", protocol_type, access_address, http_address, sub_topic_prefix, created_at, description, device_type)
+VALUES('2a95000c-9c29-7aae-58b0-5202daf1546a', 'MODBUS_RTU协议', 'MODBUS_RTU', '127.0.0.1:502', '127.0.0.1:503', 'plugin/modbus/', 1668759841, 'MODBUS_UDP协议插件服务', '2');
+
+
+
+-- 0.4.1
+ALTER TABLE public.tp_dict ADD CONSTRAINT tp_dict_un UNIQUE (dict_code,dict_value);
+ALTER TABLE public.ts_kv_latest ADD CONSTRAINT ts_kv_latest_fk FOREIGN KEY (entity_id) REFERENCES public.device(id) ON DELETE CASCADE;
+ALTER TABLE public.conditions_log ADD CONSTRAINT conditions_log_fk FOREIGN KEY (device_id) REFERENCES public.device(id);
+ALTER TABLE public.warning_config ADD CONSTRAINT warning_config_fk FOREIGN KEY (bid) REFERENCES public.device(id);
+ALTER TABLE public.warning_log ADD CONSTRAINT warning_log_fk FOREIGN KEY (data_id) REFERENCES public.device(id);
+ALTER TABLE public.tp_function ADD CONSTRAINT tp_function_fk FOREIGN KEY (menu_id) REFERENCES public.tp_menu(id);
+
+INSERT INTO public.tp_dict
+(id, dict_code, dict_value, "describe", created_at)
+VALUES('19cd0e88-fe7b-a225-a0d6-77bd73757821', 'DRIECT_ATTACHED_PROTOCOL', 'mqtt', 'MQTT协议', 1669281205);
+INSERT INTO public.tp_dict
+(id, dict_code, dict_value, "describe", created_at)
+VALUES('8881ffe7-7c2b-43c2-13f3-7227dafa46ba', 'DRIECT_ATTACHED_PROTOCOL', 'video_address', '视频地址接入', 1669281289);
+ALTER TABLE public.device ADD created_at int8 NULL;
+
+
+ALTER TABLE public.tp_script ADD device_type varchar(36) NOT NULL DEFAULT 1;
+COMMENT ON COLUMN public.tp_script.device_type IS '设备类型';
+
+ALTER TABLE public.conditions_log DROP CONSTRAINT conditions_log_fk;
+ALTER TABLE public.conditions_log ADD CONSTRAINT conditions_log_fk FOREIGN KEY (device_id) REFERENCES public.device(id) ON DELETE CASCADE;
+
+ALTER TABLE public.tp_dashboard ALTER COLUMN relation_id DROP NOT NULL;
+
+INSERT INTO public.tp_dict
+(id, dict_code, dict_value, "describe", created_at)
+VALUES('8881ffe7-7c2b-43c2-13f3-7227dafa46bv', 'GATEWAY_PROTOCOL', 'MODBUS_TCP', 'MODBUS_TCP协议', 1669281289);
+INSERT INTO public.tp_dict
+(id, dict_code, dict_value, "describe", created_at)
+VALUES('8881ffe7-7c2b-43c2-13f3-7227dafa46bs', 'GATEWAY_PROTOCOL', 'MODBUS_RTU', 'MODBUS_RTU协议', 1669281289);
+
+INSERT INTO public.tp_protocol_plugin
+(id, "name", protocol_type, access_address, http_address, sub_topic_prefix, created_at, description, device_type)
+VALUES('de497b74-1bb6-2fc8-237b-75199304ba78', '自定义TCP协议', 'raw-tcp', '127.0.0.1:7654', '127.0.0.1:8098', 'plugin/tcp/', 1670812659, '请参考文档对接设备', '2');
+INSERT INTO public.tp_protocol_plugin
+(id, "name", protocol_type, access_address, http_address, sub_topic_prefix, created_at, description, device_type)
+VALUES('aea3b83a-284d-5738-6d0f-94fc73220c33', '官方TCP协议', 'tcp', '127.0.0.1:7653', '127.0.0.1:8000', 'plugin/tcp/', 1670813735, '请参考文档对接设备', '1');
+INSERT INTO public.tp_protocol_plugin
+(id, "name", protocol_type, access_address, http_address, sub_topic_prefix, created_at, description, device_type)
+VALUES('95b7c0b6-5c5b-4b45-c9ea-5bebda5a48ec', '官方TCP协议', 'tcp', '127.0.0.1:7653', '127.0.0.1:8000', 'plugin/tcp/', 1670813749, '请参考文档对接设备', '2');
+INSERT INTO public.tp_protocol_plugin
+(id, "name", protocol_type, access_address, http_address, sub_topic_prefix, created_at, description, device_type)
+VALUES('95c957bc-a53b-6445-e882-1973bb546b12', '自定义TCP协议', 'raw-tcp', '127.0.0.1:7654', '127.0.0.1:8098', 'plugin/tcp/', 1670809899, '请参考文档对接设备', '1');
+
+INSERT INTO public.tp_dict
+(id, dict_code, dict_value, "describe", created_at)
+VALUES('fad00d07-63c7-2685-1ee7-3e92d0142c88', 'DRIECT_ATTACHED_PROTOCOL', 'raw-tcp', '自定义TCP协议', 1670809899);
+INSERT INTO public.tp_dict
+(id, dict_code, dict_value, "describe", created_at)
+VALUES('9663bb03-4881-1965-5cf5-17341a4db761', 'GATEWAY_PROTOCOL', 'raw-tcp', '自定义TCP协议', 1670812659);
+INSERT INTO public.tp_dict
+(id, dict_code, dict_value, "describe", created_at)
+VALUES('b9249215-09a2-0298-02c2-0d9085fc40d2', 'DRIECT_ATTACHED_PROTOCOL', 'tcp', '官方TCP协议', 1670813735);
+INSERT INTO public.tp_dict
+(id, dict_code, dict_value, "describe", created_at)
+VALUES('25074e80-b7ca-99a3-e1f7-2fec7ec31b24', 'GATEWAY_PROTOCOL', 'tcp', '官方TCP协议', 1670813749);
+
+CREATE INDEX operation_log_created_at_idx ON public.operation_log (created_at DESC);
+CREATE INDEX ts_kv_entity_id_idx ON public.ts_kv (entity_id,ts DESC);
